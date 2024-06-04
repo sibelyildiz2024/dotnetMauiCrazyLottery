@@ -1,0 +1,190 @@
+﻿@page "/listedit/{Id:int}"
+@using System.ComponentModel.DataAnnotations
+@using Lottery.Model
+@using Lottery.Service
+@inject ICrazyNumericLotteryService CrazyNumericLotteryService
+@inject NavigationManager NavigationManager
+
+<style>
+	.valid.modified:not([type=checkbox]) {
+		outline: 1px solid #26b050;
+	}
+
+	.invalid {
+		outline: 1px solid red;
+	}
+
+	.validation-message {
+		color: red;
+	}
+</style>
+
+<EditForm EditContext="@editContext" OnValidSubmit="HandleOnValidSubmit">
+	<DataAnnotationsValidator />
+	<p>Enter winning numbers of the lottery</p>
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label">Date: <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<DateInput TValue="DateTime" Value="crazyNumericLottery.LotteryDate" ValueExpression="()=>crazyNumericLottery.LotteryDate" ValueChanged="(value)=>DateChanged(value)" />
+		</div>
+
+	</div>
+
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label">Number 1: <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<NumberInput TValue="Int32" Value="crazyNumericLottery.Number1" ValueExpression="() => crazyNumericLottery.Number1" ValueChanged="(value) => Number1Changed(value)" Placeholder="Enter number 1" EnableMinMax="true" Min="1" Max="90" class="form-control" />
+			<ValidationMessage For="@(() => crazyNumericLottery.Number1)" />
+		</div>
+
+	</div>
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label">Number 2: <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<NumberInput TValue="Int32" Value="crazyNumericLottery.Number2" ValueExpression="()=>crazyNumericLottery.Number2" ValueChanged="(value)=>Number2Changed(value)" Placeholder="Enter number 2" EnableMinMax="true" Min="1" Max="90" />
+			<ValidationMessage For="@(()=>crazyNumericLottery.Number2)" />
+		</div>
+	</div>
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label">Number 3: <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<NumberInput TValue="Int32" Value="crazyNumericLottery.Number3" ValueExpression="()=>crazyNumericLottery.Number3" ValueChanged="(value)=>Number3Changed(value)" Placeholder="Enter Number 3" EnableMinMax="true" Min="1" Max="90" />
+			<ValidationMessage For="@(()=>crazyNumericLottery.Number3)" />
+		</div>
+	</div>
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label">Number 4: <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<NumberInput TValue="Int32" Value="crazyNumericLottery.Number4" ValueExpression="()=>crazyNumericLottery.Number4" ValueChanged="(value)=>Number4Changed(value)" Placeholder="Enter Number 4" EnableMinMax="true" Min="1" Max="90" />
+			<ValidationMessage For="@(()=>crazyNumericLottery.Number4)" />
+		</div>
+	</div>
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label">Number 5: <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<NumberInput TValue="Int32" Value="crazyNumericLottery.Number5" ValueExpression="()=>crazyNumericLottery.Number5" ValueChanged="(value)=>Number5Changed(value)" Placeholder="Enter Number 5" EnableMinMax="true" Min="1" Max="90" />
+			<ValidationMessage For="@(()=>crazyNumericLottery.Number5)" />
+		</div>
+	</div>
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label">Number 6: <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<NumberInput TValue="Int32" Value="crazyNumericLottery.Number6" ValueExpression="()=>crazyNumericLottery.Number6" ValueChanged="(value)=>Number6Changed(value)" Placeholder="Enter Number 6" EnableMinMax="true" Min="1" Max="90" />
+			<ValidationMessage For="@(()=>crazyNumericLottery.Number6)" />
+		</div>
+	</div>
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label"><span class="text-info">Joker:</span> <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<NumberInput TValue="Int32" Value="crazyNumericLottery.Joker" ValueExpression="()=>crazyNumericLottery.Joker" ValueChanged="(value)=>JokerChanged(value)" EnableMinMax="true" Min="1" Max="90" Placeholder="Enter Joker" />
+			<ValidationMessage For="@(()=>crazyNumericLottery.Joker)" />
+		</div>
+	</div>
+	<div class="form-group row mb-3">
+		<label class="col-md-2 col-form-label"> <span class="text-primary">SuperStar:</span>  <span class="text-danger">*</span></label>
+		<div class="col-md-10">
+			<NumberInput TValue="Int32" Value="crazyNumericLottery.SuperStar" ValueExpression="()=>crazyNumericLottery.SuperStar" ValueChanged="(value)=>SuperStarChanged(value)" EnableMinMax="true" Min="1" Max="90" Placeholder="Enter SuperStar" />
+			<ValidationMessage For="@(()=>crazyNumericLottery.SuperStar)" />
+		</div>
+	</div>
+
+	<div class="row mb-3">
+		<div class="col-md-12 text-right">
+			<Button Type="ButtonType.Button" Color="ButtonColor.Secondary" Class="float-end" @onclick="CancelForm">Cancel</Button>
+			<Button Type="ButtonType.Submit" Color="ButtonColor.Success" Class="float-end me-2" @onclick="SaveData">Save</Button>
+		</div>
+	</div>
+
+
+</EditForm>
+
+@code {
+	[Parameter]
+	public int Id { get; set; }
+
+	private EditContext? editContext;
+	private CrazyNumericLottery crazyNumericLottery = new();
+
+	protected override void OnInitialized()
+	{
+		editContext = new EditContext(crazyNumericLottery);
+		base.OnInitialized();
+	}
+
+	protected override async Task OnInitializedAsync()
+	{
+		crazyNumericLottery = await CrazyNumericLotteryService.GetById(Id);
+
+	}
+
+	private void Number1Changed(int value)
+	{
+		crazyNumericLottery.Number1 = value;
+
+	}
+	private void Number2Changed(int value)
+	{
+		crazyNumericLottery.Number2 = value;
+	}
+	private void Number3Changed(int value)
+	{
+		crazyNumericLottery.Number3 = value;
+	}
+	private void Number4Changed(int value)
+	{
+		crazyNumericLottery.Number4 = value;
+	}
+	private void Number5Changed(int value)
+	{
+		crazyNumericLottery.Number5 = value;
+	}
+	private void Number6Changed(int value)
+	{
+		crazyNumericLottery.Number6 = value;
+	}
+	private void SuperStarChanged(int value)
+	{
+		crazyNumericLottery.SuperStar = value;
+	}
+	private void DateChanged(DateTime value)
+	{
+		crazyNumericLottery.LotteryDate = value;
+	}
+
+	private void JokerChanged(int value)
+	{
+		crazyNumericLottery.Joker = value;
+	}
+
+	private void HandleOnValidSubmit()
+	{
+		Console.WriteLine($"Number 1: {crazyNumericLottery.Number1}");
+		Console.WriteLine($"Number 2:{crazyNumericLottery.Number2}");
+		Console.WriteLine($"Number 3:{crazyNumericLottery.Number3}");
+		Console.WriteLine($"Number 4:{crazyNumericLottery.Number4}");
+		Console.WriteLine($"Number 5:{crazyNumericLottery.Number5}");
+		Console.WriteLine($"Number 6:{crazyNumericLottery.Number6}");
+		Console.WriteLine($"Super Star:{crazyNumericLottery.SuperStar}");
+	}
+
+	public void CancelForm()
+	{
+		NavigationManager.NavigateTo("/list");
+	}
+	public async Task SaveData()
+	{
+		try
+		{
+			await CrazyNumericLotteryService.Update(crazyNumericLottery);
+			NavigationManager.NavigateTo("/list");
+		}
+		catch (Exception)
+		{
+			await App.Current.MainPage.DisplayAlert(
+			"Alert",
+			"An error occur when update data. Please contact administrator manager",
+			"Ok");
+		}
+
+	}
+}

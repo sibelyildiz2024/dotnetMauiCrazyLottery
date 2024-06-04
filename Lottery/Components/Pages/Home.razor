@@ -1,0 +1,101 @@
+﻿@page "/"
+@using Model
+@using Service
+@inject ICrazyNumericLotteryService CrazyNumericLotteryService
+
+
+<div class="row">
+	<p><i>For each column of the Crazy Numeric Lotto you can choose any 6 numbers out of the 90 or you can randomise the numbers in the column.</i></p>
+	<p><i>In addition to the Crazy Numeric Lotto numbers, you can also increase your chances of winning by picking 1 Super Star number per column out of a possible 90 numbers.</i></p>
+</div>
+<div class="row">
+	<div class="input-group mb-3">
+		<input type="number" class="form-control" placeholder="Number Of Column" aria-label="Number" aria-describedby="basic-addon1" @bind-value="numberOfColumn">
+
+		<button class="btn btn-outline-secondary" type="button" @onclick="Play">
+			Play Random
+		</button>
+	</div>
+</div>
+<div class="row">
+	<div class="col-sm-6">
+		<ul class="list-group list-group-flush">
+			@{
+				if (randomSerialList != null)
+				{
+					foreach (var item in randomSerialList)
+					{
+						<li class="list-group-item">@item</li>
+					}
+				}
+			}
+		</ul>
+	</div>
+</div>
+
+@code {
+	private int? numberOfColumn;
+	private List<string> randomSerialList = default!; //for show data on screen
+	private List<List<int>> crazyNumberForFrequncyList = default!;
+
+	protected override async Task OnInitializedAsync()
+	{
+		List<CrazyNumericLottery> crazyNumericLotteries = await CrazyNumericLotteryService.GetAll();
+
+		AnalizeService analizeService = new();
+		crazyNumberForFrequncyList = await analizeService.GetAllNumberFrequency(crazyNumericLotteries);
+	}
+
+	private async void Play()
+	{
+		if (numberOfColumn == null)
+		{
+			await App.Current.MainPage.DisplayAlert("Alert", "Please enter the number of column value.", "Ok");
+		}
+		else
+		{
+			Random random = new Random();
+			int randomValue = 0;
+			bool checkControl = false;
+
+			string randomSerial = string.Empty;
+			randomSerialList = new();
+
+			for (int i = 0; i < numberOfColumn; i++)
+			{
+				for (int k = 0; k < 6; k++)
+				{
+					while (!checkControl)
+					{
+						randomValue = random.Next(0, 89);//random index number
+						if (crazyNumberForFrequncyList[randomValue][1] > 2)
+						{
+							if (!randomSerial.Contains(crazyNumberForFrequncyList[randomValue][0].ToString()))
+							{
+								randomSerial += $"{crazyNumberForFrequncyList[randomValue][0]} ";
+								checkControl = true;
+							}
+						}
+					}
+					checkControl = false;
+				}
+
+				//super star
+				while (!checkControl)
+				{
+					randomValue = random.Next(0, 89);//random index number
+					if (crazyNumberForFrequncyList[randomValue][1] > 2)
+					{
+						randomSerial += $"+ {crazyNumberForFrequncyList[randomValue][0]} ";
+						checkControl = true;
+					}
+				}
+
+				checkControl = false;
+				randomSerialList.Add(randomSerial);
+				randomSerial = string.Empty;
+			}
+		}
+
+	}
+}

@@ -1,0 +1,404 @@
+﻿ @page "/analize"
+ @using Lottery.Model
+ @using Lottery.Service
+ @inject ICrazyNumericLotteryService CrazyNumericLotteryService
+
+
+<Tabs>
+	<Tab Title="Most Popular Number" IsActive="true">
+		<Content>
+			<p></p>
+			<p style="text-align:center;"><b>Most Popular Number For All</b></p>
+			<BarChart @ref="barChart" Height="300" Class="mb-4" />
+			<div class="row">
+				<div class="col-sm-6">
+					<Card>
+						<CardBody>
+							<CardSubTitle>Most Populer 10 Number For All</CardSubTitle>
+							<CardText>@mostPopular10Number</CardText>
+						</CardBody>
+					</Card>
+				</div>
+				<div class="col-sm-6">
+					<Card>
+						<CardBody>
+							<CardSubTitle>Most Populer 10 Number For 6 Numbers</CardSubTitle>
+							<CardText>@mostPupular10NumverFor6</CardText>
+						</CardBody>
+					</Card>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-sm-6">
+					<Card>
+						<CardBody>
+							<CardSubTitle>Most Populer 10 Number For Joker</CardSubTitle>
+							<CardText>@mostPopular10NumberForJoker</CardText>
+						</CardBody>
+					</Card>
+				</div>
+				<div class="col-sm-6">
+					<Card>
+						<CardBody>
+							<CardSubTitle>Most Populer 10 Number For SuperStar</CardSubTitle>
+							<CardText>@mostPopular10NumberForSuperStar</CardText>
+						</CardBody>
+					</Card>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-sm-6">
+					<Card>
+						<CardBody>
+							<CardSubTitle>Never Come Up 10 Number</CardSubTitle>
+							<CardText>@neverComeUp10Number</CardText>
+						</CardBody>
+					</Card>
+				</div>
+
+			</div>
+		</Content>
+	</Tab>
+	<Tab Title="Frequency Filter">
+		<Content>
+			<p></p>
+			<p style="text-align:center;"><b>Most Popular Number Frequency Filter</b></p>
+
+			<div class="row">
+				<div class="input-group mb-3">
+					<input type="number" class="form-control" placeholder="Number" aria-label="Number" aria-describedby="basic-addon1" @bind-value="numberAll">
+					<button class="btn btn-outline-secondary" type="button" @onclick="FilterNumber">
+						<Icon Name="IconName.Search"></Icon>
+					</button>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-sm-3">
+					<ul class="list-group list-group-flush">
+						@{
+							<li class="list-group-item"> @numberAllText</li>
+							if (numberAllDateTimeList != null)
+							{
+								foreach (var item in numberAllDateTimeList)
+								{
+									<li class="list-group-item">@(DateOnly.FromDateTime(item))</li>
+								}
+							}
+						}
+					</ul>
+				</div>
+				<div class="col-sm-3">
+					<ul class="list-group list-group-flush">
+						@{
+							<li class="list-group-item">@numberFor6Text</li>
+							if (numberFor6DateTimeList != null)
+							{
+								foreach (var item in numberFor6DateTimeList)
+								{
+									<li class="list-group-item">@(DateOnly.FromDateTime(item))</li>
+								}
+							}
+						}
+					</ul>
+				</div>
+				<div class="col-sm-3">
+					<ul class="list-group list-group-flush">
+						@{
+							<li class="list-group-item">@numberForJokerText</li>
+							if (numberForJokerDateTimeList != null)
+							{
+								foreach (var item in numberForJokerDateTimeList)
+								{
+									<li class="list-group-item">@(DateOnly.FromDateTime(item))</li>
+								}
+							}
+						}
+					</ul>
+				</div>
+				<div class="col-sm-3">
+					<ul class="list-group list-group-flush">
+						@{
+							<li class="list-group-item">@numberForSuperStarText</li>
+							if (numberForSuperStarDateTimeList != null)
+							{
+								foreach (var item in numberForSuperStarDateTimeList)
+								{
+									<li class="list-group-item">@(DateOnly.FromDateTime(item))</li>
+								}
+							}
+						}
+					</ul>
+				</div>
+			</div>
+		</Content>
+	</Tab>
+</Tabs>
+@code {
+    private BarChart barChart = default!;
+    private BarChartOptions barChartOptions = default!;
+    private ChartData chartData = default!;
+
+    private AnalizeService analizeService = new();
+
+    private List<CrazyNumericLottery> crazyNumericLotteries = default!;
+    private List<List<int>> analizeAllList = default!;
+    private List<List<int>> analizeFor6List = default!;
+    private List<List<int>> analizeForJokerList = default!;
+    private List<List<int>> analizeForSuperStar = default!;
+
+    private string mostPopular10Number = string.Empty;
+    private string mostPupular10NumverFor6 = string.Empty;
+    private string mostPopular10NumberForJoker = string.Empty;
+    private string mostPopular10NumberForSuperStar = string.Empty;
+    private string neverComeUp10Number = string.Empty;
+
+	//filter Frequency
+	private int? numberAll = default!;
+	private string numberAllText = string.Empty;
+	private List<DateTime> numberAllDateTimeList = default!;
+
+	private string numberFor6Text = string.Empty;
+	private List<DateTime> numberFor6DateTimeList = default!;
+
+	private string numberForJokerText = string.Empty;
+	private List<DateTime> numberForJokerDateTimeList = default!;
+
+	private string numberForSuperStarText = string.Empty;
+	private List<DateTime> numberForSuperStarDateTimeList = default!;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await CheckLotteryClass();
+		await CheckAnalizeService();
+		Set10Number();
+	}
+
+	private async Task CheckLotteryClass()
+	{
+		if (crazyNumericLotteries == null)
+		{
+			crazyNumericLotteries = await CrazyNumericLotteryService.GetAll();
+		}
+	}
+
+	private async Task CheckAnalizeService()
+	{
+		if (analizeAllList == null)
+		{
+			analizeAllList = await analizeService.GetAllNumberFrequency(crazyNumericLotteries);
+		}
+		if (analizeFor6List == null)
+		{
+			analizeFor6List = await analizeService.GetAllNumberFrequencyFor6Numbers(crazyNumericLotteries);
+		}
+		if (analizeForJokerList == null)
+		{
+			analizeForJokerList = await analizeService.GetAllNumberFrequencyForJoker(crazyNumericLotteries);
+		}
+		if (analizeForSuperStar == null)
+		{
+			analizeForSuperStar = await analizeService.GetAllNumberFrequencyForSuperStar(crazyNumericLotteries);
+		}
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+
+			await CheckLotteryClass();
+			await CheckAnalizeService();
+
+			GetChartData();
+			await barChart.InitializeAsync(chartData, barChartOptions);
+
+		}
+
+		await base.OnAfterRenderAsync(firstRender);
+	}
+
+	private void GetChartData()
+	{
+		var labels = GetLabels();
+
+		var datasets = new List<IChartDataset>();
+
+		var dataset1 = new BarChartDataset()
+			{
+				Data = GetData(),
+				BackgroundColor = new List<string> { ColorBuilder.CategoricalTwelveColors[0] },
+				BorderColor = new List<string> { ColorBuilder.CategoricalTwelveColors[0] },
+				BorderWidth = new List<double> { 0 },
+			};
+		datasets.Add(dataset1);
+
+		chartData = new ChartData
+			{
+				Labels = labels,
+				Datasets = datasets
+			};
+
+		barChartOptions = new BarChartOptions();
+		barChartOptions.Responsive = true;
+		barChartOptions.Interaction = new Interaction { Mode = InteractionMode.X };
+		barChartOptions.IndexAxis = "x";
+
+		barChartOptions.Scales.X!.Title!.Text = "Crazy Numbers";
+		barChartOptions.Scales.X.Title.Display = true;
+
+		barChartOptions.Scales.Y!.Title!.Text = "Frequency";
+		barChartOptions.Scales.Y.Title.Display = true;
+
+		barChartOptions.Plugins.Legend.Display = false;
+	}
+
+	private List<string> GetLabels()
+	{
+		List<string> labelList = new();
+
+		for (int i = 1; i < 91; i++)
+		{
+			labelList.Add(i.ToString());
+		}
+
+		return labelList;
+	}
+
+	private List<double> GetData()
+	{
+		List<double> returnVal = new();
+
+		for (int i = 0; i < analizeAllList.Count; i++)
+		{
+			returnVal.Add(Convert.ToDouble(analizeAllList[i][1]));
+		}
+
+		return returnVal;
+	}
+
+	private string GetMostPopular10Number(List<List<int>> analizeList)
+	{
+		List<int> number10List = new();
+		int controlFrequency = 0;
+		int number10 = 0;
+		string returnVal = string.Empty;
+
+		for (int j = 0; j < 10; j++)
+		{
+			for (int i = 0; i < analizeList.Count; i++)
+			{
+				if (controlFrequency < analizeList[i][1])
+				{
+					if (!number10List.Contains(analizeList[i][0]))
+					{
+						controlFrequency = analizeList[i][1];
+						number10 = analizeList[i][0];
+					}
+				}
+			}
+			number10List.Add(number10);
+			returnVal += $"{number10.ToString()}  ";
+			number10 = 0;
+			controlFrequency = 0;
+		}
+
+		return returnVal;
+	}
+
+	private void Set10Number()
+	{
+		mostPopular10Number = GetMostPopular10Number(analizeAllList);
+		mostPupular10NumverFor6 = GetMostPopular10Number(analizeFor6List);
+		mostPopular10NumberForSuperStar = GetMostPopular10Number(analizeForSuperStar);
+		mostPopular10NumberForJoker = GetMostPopular10Number(analizeForJokerList);
+		neverComeUp10Number = GetNeverComeUp10Numbers();
+	}
+
+	private string GetNeverComeUp10Numbers()
+	{
+		string returnVal = string.Empty;
+
+		for (int k = 0; k < 10; k++)
+		{
+			for (int i = 0; i < analizeAllList.Count; i++)
+			{
+				if (analizeAllList[i][1] == 0 &&
+					!returnVal.Contains(analizeAllList[i][0].ToString()))
+				{
+					returnVal += $"{analizeAllList[i][0]}  ";
+				}
+			}
+		}
+
+		return returnVal;
+	}
+
+	private async void FilterNumber()
+	{
+		await FilterAllNumber();
+		await Filter6Number();
+		await FilterJokerNumber();
+		await FilterSuperStarNumber();
+	}
+
+	private async Task FilterAllNumber()
+	{
+		if (numberAll.HasValue &&
+			numberAll > 0 &&
+			numberAll < 91)
+		{
+			numberAllText = $"Frequency For All: {await analizeService.GetByNumberFrequency(numberAll.Value, crazyNumericLotteries)}";
+			numberAllDateTimeList = await analizeService.GetByNumberFrequencyWithDate(numberAll.Value, crazyNumericLotteries);
+		}
+		else
+		{
+			numberAllText = "Please enter number that is between 1 and 90";
+		}
+	}
+
+	private async Task Filter6Number()
+	{
+		if (numberAll.HasValue &&
+			numberAll > 0 &&
+			numberAll < 91)
+		{
+			numberFor6Text = $"Frequency For 6: {await analizeService.GetByNumberFrequencyFor6Number(numberAll.Value, crazyNumericLotteries)}";
+			numberFor6DateTimeList = await analizeService.GetByNumberFrequencyWithDateFor6Number(numberAll.Value, crazyNumericLotteries);
+		}
+		else
+		{
+			numberFor6Text = string.Empty;
+		}
+	}
+
+	private async Task FilterJokerNumber()
+	{
+		if (numberAll.HasValue &&
+			numberAll > 0 &&
+			numberAll < 91)
+		{
+			numberForJokerText = $"Frequency For Joker: {await analizeService.GetByNumberFrequencyForJoker(numberAll.Value, crazyNumericLotteries)}";
+			numberForJokerDateTimeList = await analizeService.GetByNumberFrequencyWithDateForJoker(numberAll.Value, crazyNumericLotteries);
+		}
+		else
+		{
+			numberForJokerText = string.Empty;
+		}
+	}
+
+	private async Task FilterSuperStarNumber()
+	{
+		if (numberAll.HasValue &&
+			numberAll > 0 &&
+			numberAll < 91)
+		{
+			numberForSuperStarText = $"Frequency For SuperStar: {await analizeService.GetByNumberFrequencyForSuperStar(numberAll.Value, crazyNumericLotteries)}";
+
+			numberForSuperStarDateTimeList = await analizeService.GetByNumberFrequencyWithDateForSuperStar(numberAll.Value, crazyNumericLotteries);
+		}
+		else
+		{
+			numberForSuperStarText = string.Empty;
+		}
+	}
+}

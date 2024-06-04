@@ -1,0 +1,90 @@
+﻿@page "/list"
+@using Lottery.Model
+@using Lottery.Service
+@inject ICrazyNumericLotteryService CrazyNumericLotteryService
+
+<p></p>
+<p style="text-align:center;"><b>All Crazy Lottery Number List</b></p>
+<div class="row">
+	<Grid @ref="grid" TItem="CrazyNumericLottery"
+		  Class="table table-hover table-bordered table-striped"
+		  DataProvider="CrazyNumericLotteryDataProvider"
+		  AllowPaging="true"
+		  AllowSorting="true"
+		  PageSize="5"
+		  PageSizeSelectorVisible="true"
+		  PageSizeSelectorItems="@(new int[]{5,10,20})"
+		  Responsive="true">
+
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="LotteryDate" SortKeySelector="@(item=>item.LotteryDate)" SortDirection="SortDirection.Ascending">
+			@(DateOnly.FromDateTime(context.LotteryDate))
+		</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="1">@context.Number1</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="2">@context.Number2</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="3">@context.Number3</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="4">@context.Number4</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="5">@context.Number5</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="6">@context.Number6</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="Joker" Class="table-success">@context.Joker</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="Super Star" Class="table-danger">@context.SuperStar</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="Edit">
+			<a class="btn btn-link" href="/listedit/@context.Id">
+				<Icon Name="IconName.PencilSquare" Color="IconColor.Success" />
+			</a>
+		</GridColumn>
+		<GridColumn TItem="CrazyNumericLottery" HeaderText="Delete">
+			<button type="button" class="btn btn-link" @onclick="()=>DeleteItem(context.Id)">
+				<Icon Name="IconName.Trash3" Color="IconColor.Danger" />
+			</button>
+		</GridColumn>
+	</Grid>
+</div>
+
+
+@code {
+	Grid<CrazyNumericLottery> grid=default!;
+	private IEnumerable<CrazyNumericLottery> lotteries = default!;
+	private async Task<GridDataProviderResult<CrazyNumericLottery>> CrazyNumericLotteryDataProvider
+	(GridDataProviderRequest<CrazyNumericLottery> request)
+	{
+		if (lotteries is null)
+		{
+			lotteries = await GetCrazyNumericLotteries();
+		}
+
+		return await Task.FromResult(request.ApplyTo(lotteries));
+	}
+
+	private async Task<IEnumerable<CrazyNumericLottery>> GetCrazyNumericLotteries()
+	{
+		return await CrazyNumericLotteryService.GetAll();
+	}
+
+	private async Task DeleteItem(int Id)
+	{
+		var answer = await App.Current.MainPage.DisplayAlert(
+		"Alert",
+		"This item will be deleted permanently. Are you sure that want to delete it?",
+		"Yes",
+		"No");
+
+		if (answer)
+		{
+			try
+			{
+				CrazyNumericLottery lotteryItem = await CrazyNumericLotteryService.GetById(Id);
+				await CrazyNumericLotteryService.Delete(lotteryItem);
+				lotteries = await GetCrazyNumericLotteries();
+				await grid.RefreshDataAsync();
+			}
+			catch (Exception)
+			{
+				await App.Current.MainPage.DisplayAlert(
+							"Alert",
+							"There is a problem when delete data. Please call system administrator.",
+							"Ok");
+			}
+
+		}
+	}
+}
